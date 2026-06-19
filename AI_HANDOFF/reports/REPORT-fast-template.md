@@ -1,0 +1,10 @@
+# REPORT-YYYYMMDD-001
+
+Task: TASK-YYYYMMDD-001
+Mode: FAST
+Status: IMPLEMENTED / NEEDS_CLARIFICATION
+
+- Changed:
+- Validation:
+- Risk:
+- Next:
