@@ -1,0 +1,7 @@
+.claudian/
+.obsidian/
+.idea/
+
+# Large PDFs
+05_教材PDF/
+06_新增资料/*.pdf

@@ -1,0 +1,17 @@
+@startmindmap
+skinparam BackgroundColor #FFFFFF
+skinparam defaultFontName Microsoft YaHei
+* 计算机网络期末复习
+** [P1] 网络层
+*** 子网/CIDR/分片/路由协议
+** [P1] 运输层
+*** TCP握手挥手/可靠传输/拥塞控制
+** [P2] 数据链路层
+*** CRC/ARP/CSMA-CD/交换机
+left side
+** [P2] 应用层
+*** DNS/HTTP/HTTPS/DHCP/NAT
+** [P3] 体系结构
+*** 五层模型/PDU/封装解封装
+@endmindmap
+

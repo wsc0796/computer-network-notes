@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>计算机网络期末高质量思维导图</title>
+  <style>
+    :root {
+      --ink: #18212f;
+      --muted: #5c6675;
+      --line: #cfd7e3;
+      --paper: #f7f8fb;
+      --panel: #ffffff;
+      --blue: #1f6feb;
+      --green: #1f8f5f;
+      --red: #c43b3b;
+      --violet: #7755cc;
+      --amber: #b56a00;
+      --teal: #007c89;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+      line-height: 1.45;
+      letter-spacing: 0;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 750;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    nav a {
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      white-space: nowrap;
+    }
+
+    main {
+      width: min(1380px, calc(100vw - 28px));
+      margin: 18px auto 40px;
+    }
+
+    .map {
+      margin: 18px 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 8px 20px rgba(24, 33, 47, 0.06);
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+    }
+
+    .mind {
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) 180px minmax(280px, 1fr);
+      gap: 18px;
+      align-items: center;
+    }
+
+    .root {
+      display: grid;
+      place-items: center;
+      min-height: 96px;
+      padding: 18px;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 800;
+      background: #fff;
+    }
+
+    .branch {
+      display: grid;
+      gap: 12px;
+    }
+
+    .node {
+      border-left: 5px solid var(--blue);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px var(--line);
+      overflow: hidden;
+    }
+
+    .node.green { border-left-color: var(--green); }
+    .node.red { border-left-color: var(--red); }
+    .node.violet { border-left-color: var(--violet); }
+    .node.amber { border-left-color: var(--amber); }
+    .node.teal { border-left-color: var(--teal); }
+
+    .node h3 {
+      margin: 0;
+      padding: 10px 12px 6px;
+      font-size: 15px;
+      font-weight: 750;
+    }
+
+    .node ul {
+      margin: 0;
+      padding: 0 12px 12px 26px;
+      font-size: 13px;
+    }
+
+    .node li + li { margin-top: 4px; }
+
+    .tag {
+      display: inline-block;
+      margin-right: 5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      vertical-align: 1px;
+      background: var(--ink);
+    }
+
+    .tag.p1 { background: var(--red); }
+    .tag.p2 { background: var(--amber); }
+    .tag.q { background: var(--blue); }
+    .tag.j { background: var(--green); }
+    .tag.d { background: var(--violet); }
+
+    .drill {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .pair {
+      display: grid;
+      grid-template-columns: 42% 58%;
+      min-height: 64px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .pair b {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      background: #eef3f8;
+      font-size: 13px;
+    }
+
+    .pair span {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      font-size: 13px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .step {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      min-height: 126px;
+    }
+
+    .step h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .step p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef3f8;
+      font-family: Consolas, monospace;
+      font-size: 0.95em;
+    }
+
+    @media (max-width: 900px) {
+      header { position: static; align-items: flex-start; flex-direction: column; }
+      nav { justify-content: flex-start; }
+      .mind { grid-template-columns: 1fr; }
+      .root { order: -1; }
+      .drill, .steps { grid-template-columns: 1fr; }
+      .pair { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      header { position: static; border: 0; }
+      nav { display: none; }
+      main { width: 100%; margin: 0; }
+      .map { break-inside: avoid; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>计算机网络期末高质量思维导图</h1>
+    <nav>
+      <a href="#overview">总览</a>
+      <a href="#objective">选择判断</a>
+      <a href="#short">简答</a>
+      <a href="#network">网络层大题</a>
+      <a href="#tcp">TCP专题</a>
+      <a href="#blind">补盲</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="map" id="overview">
+      <h2>00 总览：按分值优先级记忆</h2>
+      <div class="mind">
+        <div class="branch">
+          <article class="node red">
+            <h3><span class="tag p1">P1</span>网络层</h3>
+            <ul>
+              <li>子网：网络地址、广播地址、可用主机数</li>
+              <li>CIDR：最长前缀匹配、路由聚合</li>
+              <li>分片：MTU、MF、片偏移/8</li>
+              <li>协议：RIP、OSPF、BGP对比</li>
+            </ul>
+          </article>
+          <article class="node red">
+            <h3><span class="tag p1">P1</span>运输层</h3>
+            <ul>
+              <li>TCP三次握手、四次挥手</li>
+              <li>可靠传输：序号、确认、重传、窗口</li>
+              <li>流量控制看rwnd，拥塞控制看cwnd</li>
+            </ul>
+          </article>
+        </div>
+        <div class="root">期末80+<br>先题型，后章节</div>
+        <div class="branch">
+          <article class="node amber">
+            <h3><span class="tag p2">P2</span>数据链路层</h3>
+            <ul>
+              <li>CRC：生成多项式、模2除法</li>
+              <li>ARP：请求广播、响应单播、跨网查网关MAC</li>
+              <li>以太网：MAC 48位、最小帧64B</li>
+            </ul>
+          </article>
+          <article class="node teal">
+            <h3><span class="tag p2">P2</span>应用层与体系结构</h3>
+            <ul>
+              <li>DNS：缓存、本地、根、TLD、权威</li>
+              <li>HTTP/HTTPS：80、443、TLS</li>
+              <li>五层模型：报文、段、数据报、帧、比特</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="map" id="objective">
+      <h2>01 选择判断：触发词到答案</h2>
+      <div class="drill">
+        <div class="pair"><b>ARP请求</b><span>广播；ARP响应单播；路由器不转发ARP广播</span></div>
+        <div class="pair"><b>跨网通信MAC</b><span>查默认网关MAC，不是最终目的主机MAC</span></div>
+        <div class="pair"><b>最长前缀匹配</b><span>多条路由都匹配时，选择前缀最长的一条</span></div>
+        <div class="pair"><b>RIP跳数</b><span>最大有效15跳；16表示不可达</span></div>
+        <div class="pair"><b>OSPF算法</b><span>链路状态协议；Dijkstra最短路径</span></div>
+        <div class="pair"><b>BGP范围</b><span>AS之间；路径向量；策略优先</span></div>
+        <div class="pair"><b>TCP确认号</b><span>期望收到的下一个字节序号</span></div>
+        <div class="pair"><b>TIME_WAIT</b><span>主动关闭方进入；等待2MSL</span></div>
+        <div class="pair"><b>端口号长度</b><span>16位；HTTP 80，HTTPS 443，DNS常用UDP 53</span></div>
+        <div class="pair"><b>CRC作用</b><span>差错检测，不是自动纠错</span></div>
+        <div class="pair"><b>交换机学习</b><span>根据源MAC地址动态学习</span></div>
+        <div class="pair"><b>以太网最小帧</b><span>64字节；MAC地址48位</span></div>
+      </div>
+    </section>
+
+    <section class="map" id="short">
+      <h2>02 简答：标准答题骨架</h2>
+      <div class="mind">
+        <div class="branch">
+          <article class="node violet">
+            <h3><span class="tag d">简答</span>五层封装</h3>
+            <ul>
+              <li>应用层生成报文</li>
+              <li>运输层加TCP/UDP首部成段</li>
+              <li>网络层加IP首部成数据报</li>
+              <li>链路层加帧头帧尾成帧</li>
+              <li>物理层传输比特流</li>
+            </ul>
+          </article>
+          <article class="node violet">
+            <h3><span class="tag d">简答</span>DNS解析</h3>
+            <ul>
+              <li>作用：域名转换成IP地址</li>
+              <li>路径：缓存 -> 本地DNS -> 根 -> TLD -> 权威</li>
+              <li>陷阱：根DNS通常不给最终IP</li>
+            </ul>
+          </article>
+        </div>
+        <div class="root">定义一句话<br>过程三到五步<br>最后补陷阱</div>
+        <div class="branch">
+          <article class="node violet">
+            <h3><span class="tag d">简答</span>TCP三次握手</h3>
+            <ul>
+              <li>SYN seq=x</li>
+              <li>SYN+ACK seq=y ack=x+1</li>
+              <li>ACK ack=y+1</li>
+              <li>原因：确认双方收发能力，防止失效SYN</li>
+            </ul>
+          </article>
+          <article class="node violet">
+            <h3><span class="tag d">简答</span>TCP四次挥手</h3>
+            <ul>
+              <li>FIN -> ACK -> FIN -> ACK</li>
+              <li>原因：TCP全双工，两个方向独立关闭</li>
+              <li>TIME_WAIT：保证最后ACK到达，让旧报文消失</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="map" id="network">
+      <h2>03 网络层大题：看到输入就走模板</h2>
+      <div class="steps">
+        <article class="step">
+          <h3>子网划分</h3>
+          <p><code>h=32-前缀</code>；总地址数<code>2^h</code>；可用主机<code>2^h-2</code>；网络地址看步长或做IP & 掩码。</p>
+        </article>
+        <article class="step">
+          <h3>CIDR/聚合</h3>
+          <p>先写二进制，找最长公共前缀，公共前缀后置0。查路由时多条匹配选最长前缀。</p>
+        </article>
+        <article class="step">
+          <h3>IP分片</h3>
+          <p>数据长度=总长度-首部；非最后片数据长度取8的倍数；片偏移=数据起点/8；最后MF=0。</p>
+        </article>
+        <article class="step">
+          <h3>RIP更新</h3>
+          <p>新距离=邻居通告距离+1；没有就加，原下一跳是该邻居就更新，更短就更新，16不可达。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="map" id="tcp">
+      <h2>04 TCP专题：画图、状态、为什么</h2>
+      <div class="mind">
+        <div class="branch">
+          <article class="node red">
+            <h3><span class="tag p1">P1</span>三次握手</h3>
+            <ul>
+              <li>C -> S：SYN</li>
+              <li>S -> C：SYN+ACK</li>
+              <li>C -> S：ACK</li>
+              <li>客户端：CLOSED -> SYN_SENT -> ESTABLISHED</li>
+              <li>服务端：LISTEN -> SYN_RCVD -> ESTABLISHED</li>
+            </ul>
+          </article>
+          <article class="node red">
+            <h3><span class="tag p1">P1</span>四次挥手</h3>
+            <ul>
+              <li>FIN -> ACK -> FIN -> ACK</li>
+              <li>主动方最后进TIME_WAIT</li>
+              <li>等待2MSL</li>
+            </ul>
+          </article>
+        </div>
+        <div class="root">TCP高分点<br>不能只背名词</div>
+        <div class="branch">
+          <article class="node green">
+            <h3><span class="tag j">判断</span>可靠传输</h3>
+            <ul>
+              <li>TCP按字节编号</li>
+              <li>ACK表示期望下一个字节</li>
+              <li>超时重传，重复ACK触发快重传</li>
+              <li>发送窗口= min(rwnd, cwnd)</li>
+            </ul>
+          </article>
+          <article class="node green">
+            <h3><span class="tag j">判断</span>控制机制</h3>
+            <ul>
+              <li>流量控制保护接收方：rwnd</li>
+              <li>拥塞控制保护网络：cwnd</li>
+              <li>慢开始指数，拥塞避免线性</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="map" id="blind">
+      <h2>05 补盲：链路层与应用层易错点</h2>
+      <div class="drill">
+        <div class="pair"><b>CRC步骤</b><span>生成多项式转二进制；补r个0；模2除；余数接原数据后</span></div>
+        <div class="pair"><b>透明传输</b><span>字节填充加ESC；比特填充连续5个1后插0</span></div>
+        <div class="pair"><b>CSMA/CD</b><span>先听后发，边发边听，冲突停止并退避重传</span></div>
+        <div class="pair"><b>DHCP</b><span>Discover、Offer、Request、ACK；动态分配IP</span></div>
+        <div class="pair"><b>HTTP/HTTPS</b><span>HTTP明文80；HTTPS=HTTP+TLS，默认443</span></div>
+        <div class="pair"><b>ICMP</b><span>差错报告与诊断；ping使用ICMP回显</span></div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
