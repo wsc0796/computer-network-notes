@@ -1,242 +1,248 @@
 """
-Round 2 verification script.
-Verifies exam scores, plan timing, file paths, question-answer correspondence.
+Round 2 final verification script.
+
+Checks:
+- exam score totals and module totals
+- exam question time total and declared answer/correction time
+- question number uniqueness and exam-answer correspondence
+- 6-hour plan blocks: total, no overlap, no gaps
+- exact referenced file paths
+- key answer values for RTT/RTO and IP fragmentation
+- VLSM required file existence when VLSM is in the plan
 """
+
 import os
 import re
 import sys
+from pathlib import Path
 
-REPO = r"C:\Users\50469\Desktop\Shirakoko_Notes\...课程笔记_输出"
-# Override with current directory logic
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-errors = []
-warnings = []
+REPO = Path(__file__).resolve().parents[1]
 
-def check(condition, msg, level="error"):
-    if not condition:
-        if level == "error":
-            errors.append(msg)
-        else:
-            warnings.append(msg)
+errors: list[str] = []
+warnings: list[str] = []
 
-# ========== 1. Exam score verification ==========
-print("=" * 60)
-print("1. Exam score verification")
 
-exam_path = os.path.join(REPO, "02_刷题模拟卷", "运输层网络层_6小时验收卷.md")
-answer_path = os.path.join(REPO, "02_刷题模拟卷", "运输层网络层_6小时验收卷_答案.md")
-
-check(os.path.exists(exam_path), f"Exam file missing: {exam_path}")
-check(os.path.exists(answer_path), f"Answer file missing: {answer_path}")
-
-with open(exam_path, 'r', encoding='utf-8') as f:
-    exam_text = f.read()
-
-transport_expected = [8, 8, 10, 6, 10, 8]
-network_expected = [8, 8, 8, 8, 10, 8]
-
-transport_total = 0
-network_total = 0
-
-for i, exp in enumerate(transport_expected):
-    pattern = rf'### {i+1}\. .*?共(\d+)分'
-    m = re.search(pattern, exam_text, re.DOTALL)
-    if m:
-        score = int(m.group(1))
-        transport_total += score
-        check(score == exp, f"Q{i+1} score={score}, expected={exp}")
+def check(condition: bool, msg: str, level: str = "error") -> None:
+    if condition:
+        return
+    if level == "error":
+        errors.append(msg)
     else:
-        check(False, f"Q{i+1} score not found in exam")
+        warnings.append(msg)
 
-for i, exp in enumerate(network_expected):
-    pattern = rf'### {i+7}\. .*?共(\d+)分'
-    m = re.search(pattern, exam_text, re.DOTALL)
-    if m:
-        score = int(m.group(1))
-        network_total += score
-        check(score == exp, f"Q{i+7} score={score}, expected={exp}")
-    else:
-        check(False, f"Q{i+7} score not found in exam")
 
-total = transport_total + network_total
+def read_text(rel: str) -> str:
+    path = REPO / rel
+    check(path.exists(), f"File missing: {rel}")
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8")
+
+
+def time_to_minutes(value: str) -> int:
+    h, m = value.split(":")
+    return int(h) * 60 + int(m)
+
+
+def section(title: str) -> None:
+    print("\n" + "=" * 60)
+    print(title)
+
+
+exam_rel = "02_刷题模拟卷/运输层网络层_6小时验收卷.md"
+answer_rel = "02_刷题模拟卷/运输层网络层_6小时验收卷_答案.md"
+plan_rel = "01_考前冲刺复习/运输层与网络层_6小时完整复习计划.md"
+
+exam_text = read_text(exam_rel)
+answer_text = read_text(answer_rel)
+plan_text = read_text(plan_rel)
+
+
+# 1. Score verification
+section("1. Exam score verification")
+
+question_pattern = re.compile(
+    r"^###\s+(\d+)\.\s+(.+?)（.+?共(\d+)分）【预计(\d+)分钟】",
+    re.MULTILINE,
+)
+questions = [
+    {
+        "num": int(m.group(1)),
+        "title": m.group(2),
+        "score": int(m.group(3)),
+        "time": int(m.group(4)),
+    }
+    for m in question_pattern.finditer(exam_text)
+]
+
+for q in questions:
+    print(f"  Q{q['num']}: {q['score']}分, {q['time']}min, {q['title']}")
+
+question_numbers = [q["num"] for q in questions]
+check(len(question_numbers) == 13, f"Expected 13 questions, got {len(question_numbers)}")
+check(
+    len(question_numbers) == len(set(question_numbers)),
+    f"Duplicate exam question numbers: {question_numbers}",
+)
+check(question_numbers == list(range(1, 14)), f"Question numbers must be 1-13, got {question_numbers}")
+
+transport_total = sum(q["score"] for q in questions if 1 <= q["num"] <= 7)
+network_total = sum(q["score"] for q in questions if 8 <= q["num"] <= 13)
+score_total = transport_total + network_total
+
 print(f"  Transport score: {transport_total}")
 print(f"  Network score: {network_total}")
-print(f"  Total score: {total}")
+print(f"  Total score: {score_total}")
 
 check(transport_total == 50, f"Transport total={transport_total}, expected=50")
 check(network_total == 50, f"Network total={network_total}, expected=50")
-check(total == 100, f"Total={total}, expected=100")
+check(score_total == 100, f"Total={score_total}, expected=100")
 
-# Self-declaration check
-if "50+50=100" in exam_text:
-    print("  Self-declared total check: PASS")
-else:
-    warnings.append("Self-declared total '50+50=100' not found in exam text")
 
-# ========== 2. Answer file score verification ==========
-print("\n" + "=" * 60)
-print("2. Answer file score verification")
+# 2. Exam timing
+section("2. Exam timing verification")
 
-with open(answer_path, 'r', encoding='utf-8') as f:
-    answer_text = f.read()
+declared_answer_time = re.search(r"答题时间：(\d+)分钟", exam_text)
+declared_correction_time = re.search(r"订正时间：(\d+)分钟", exam_text)
+answer_time = int(declared_answer_time.group(1)) if declared_answer_time else -1
+correction_time = int(declared_correction_time.group(1)) if declared_correction_time else -1
+question_time_total = sum(q["time"] for q in questions)
 
-if "50+50=100" in answer_text:
-    print("  Answer self-declared total: PASS")
-else:
-    warnings.append("Answer self-declared total '50+50=100' not found")
+print(f"  Declared answer time: {answer_time}min")
+print(f"  Declared correction time: {correction_time}min")
+print(f"  Sum of question estimates: {question_time_total}min")
 
-# ========== 3. Question number correspondence ==========
-print("\n" + "=" * 60)
-print("3. Question number correspondence")
+check(answer_time == 60, f"Answer time={answer_time}, expected=60")
+check(correction_time >= 10, f"Correction time={correction_time}, expected >=10")
+check(55 <= question_time_total <= 60, f"Question estimate total={question_time_total}, expected 55-60")
 
-exam_q_nums = set()
-answer_q_nums = set()
 
-for m in re.finditer(r'### (\d+)\. ', exam_text):
-    exam_q_nums.add(int(m.group(1)))
-for m in re.finditer(r'### (\d+)\. ', answer_text):
-    answer_q_nums.add(int(m.group(1)))
+# 3. Answer correspondence
+section("3. Question-answer correspondence")
 
-print(f"  Exam questions: {sorted(exam_q_nums)}")
-print(f"  Answer questions: {sorted(answer_q_nums)}")
+answer_numbers = [int(m.group(1)) for m in re.finditer(r"^###\s+(\d+)\.\s+", answer_text, re.MULTILINE)]
+print(f"  Exam questions: {question_numbers}")
+print(f"  Answer questions: {answer_numbers}")
 
-check(exam_q_nums == answer_q_nums,
-      f"Question mismatch: exam extra={exam_q_nums-answer_q_nums}, answer extra={answer_q_nums-exam_q_nums}")
-check(len(exam_q_nums) == 12, f"Expected 12 questions, got {len(exam_q_nums)}")
-check(len(exam_q_nums) == len(set(exam_q_nums)), "Duplicate question numbers found")
+check(len(answer_numbers) == 13, f"Expected 13 answer sections, got {len(answer_numbers)}")
+check(
+    len(answer_numbers) == len(set(answer_numbers)),
+    f"Duplicate answer question numbers: {answer_numbers}",
+)
+check(question_numbers == answer_numbers, f"Exam-answer mismatch: exam={question_numbers}, answer={answer_numbers}")
 
-# ========== 4. 6-hour plan time verification ==========
-print("\n" + "=" * 60)
-print("4. 6-hour plan time verification")
 
-plan_path = os.path.join(REPO, "01_考前冲刺复习", "运输层与网络层_6小时完整复习计划.md")
-check(os.path.exists(plan_path), f"Plan file missing: {plan_path}")
+# 4. Plan time verification
+section("4. 6-hour plan time verification")
 
-with open(plan_path, 'r', encoding='utf-8') as f:
-    plan_text = f.read()
+block_pattern = re.compile(r"^##\s+(\d{2}:\d{2})[—-](\d{2}:\d{2})\s+.+?（(\d+)分钟）", re.MULTILINE)
+blocks = []
+for m in block_pattern.finditer(plan_text):
+    start = time_to_minutes(m.group(1))
+    end = time_to_minutes(m.group(2))
+    declared = int(m.group(3))
+    blocks.append((m.group(1), m.group(2), start, end, declared))
+    actual = end - start
+    print(f"  {m.group(1)}-{m.group(2)}: declared={declared}, actual={actual}")
+    check(actual > 0, f"Non-positive block: {m.group(1)}-{m.group(2)}")
+    check(actual == declared, f"Block duration mismatch {m.group(1)}-{m.group(2)}: declared={declared}, actual={actual}")
 
-time_pattern = r'## (\d+:\d+)[—-](\d+:\d+) .+?（(\d+)分钟）'
-matches = re.findall(time_pattern, plan_text)
+actual_total = sum(end - start for _, _, start, end, _ in blocks)
+declared_total = sum(declared for *_, declared in blocks)
+print(f"  Actual total: {actual_total}min")
+print(f"  Declared total: {declared_total}min")
 
-total_minutes = 0
-for m in matches:
-    start, end, minutes = m
-    mins = int(minutes)
-    total_minutes += mins
-    print(f"  {start}-{end}: {mins}min")
+check(actual_total == 360, f"Plan actual total={actual_total}, expected=360")
+check(declared_total == 360, f"Plan declared total={declared_total}, expected=360")
 
-print(f"  Sum of time blocks: {total_minutes}min")
-check(total_minutes == 360, f"Plan total={total_minutes}, expected=360")
+sorted_blocks = sorted(blocks, key=lambda x: x[2])
+for prev, curr in zip(sorted_blocks, sorted_blocks[1:]):
+    prev_end = prev[3]
+    curr_start = curr[2]
+    check(prev_end <= curr_start, f"Plan overlap: {prev[0]}-{prev[1]} and {curr[0]}-{curr[1]}")
+    check(prev_end == curr_start, f"Plan gap: {prev[1]} to {curr[0]}")
 
-# Check the summary table
-for label, key in [("Transport", "运输层"), ("Network", "网络层"), ("Rest", "休息"), ("Exam+Review", "闭卷验收")]:
-    pattern = rf'\|\s*{key}.*?\|\s*(\d+)\s*\|'
-    m = re.search(pattern, plan_text)
+check(sorted_blocks and sorted_blocks[0][2] == 0, "Plan must start at 00:00")
+check(sorted_blocks and sorted_blocks[-1][3] == 360, "Plan must end at 06:00")
+
+summary_expect = {
+    "运输层复习": 125,
+    "网络层复习": 140,
+    "休息": 10,
+    "自检缓冲": 10,
+    "闭卷验收": 60,
+    "订正复盘": 15,
+}
+for label, expected in summary_expect.items():
+    m = re.search(rf"\|\s*{re.escape(label)}\s*\|\s*(\d+)\s*\|", plan_text)
+    check(bool(m), f"Plan summary row missing: {label}")
     if m:
-        print(f"  Table {label}: {m.group(1)}min")
-    else:
-        warnings.append(f"Table {label} not found in plan")
+        value = int(m.group(1))
+        print(f"  Table {label}: {value}min")
+        check(value == expected, f"Plan summary {label}={value}, expected={expected}")
 
-# ========== 5. File path existence ==========
-print("\n" + "=" * 60)
-print("5. Key file path existence check")
 
-# Find files referenced in the plan
-ref_pattern = r'`([^`]+\.md)`'
-refs = set(re.findall(ref_pattern, plan_text))
-# Also check analysis files
-analysis_files = [
-    "analysis/资料审计_读取状态.md",
-    "analysis/覆盖矩阵与证据评估_第二轮.md",
-]
+# 5. Exact path verification
+section("5. Exact referenced path verification")
 
-missing = []
-for f in sorted(refs):
-    # Try as relative path
-    full = os.path.join(REPO, f)
-    if not os.path.exists(full):
-        # Try without leading directories
-        found = False
-        for root, dirs, files in os.walk(REPO):
-            for fn in files:
-                if fn == os.path.basename(f) or f.endswith(fn):
-                    found = True
-                    break
-            if found:
-                break
-        if not found:
-            missing.append(f)
+allowed_exts = (".md", ".jpg", ".jpeg", ".png", ".pdf")
+texts_for_paths = [("plan", plan_text), ("exam", exam_text), ("answer", answer_text)]
+referenced_paths: set[str] = set()
 
-for f in analysis_files:
-    full = os.path.join(REPO, f)
-    if not os.path.exists(full):
-        missing.append(f)
+for source, text in texts_for_paths:
+    for ref in re.findall(r"`([^`]+\.(?:md|jpg|jpeg|png|pdf))`", text, flags=re.IGNORECASE):
+        referenced_paths.add(ref.replace("\\", "/"))
+        print(f"  {source}: {ref}")
 
-if missing:
-    for f in missing:
-        errors.append(f"File not found: {f}")
-else:
-    print(f"  All referenced files present")
+for ref in sorted(referenced_paths):
+    check(ref.lower().endswith(allowed_exts), f"Unsupported referenced extension: {ref}")
+    check((REPO / ref).exists(), f"Referenced path missing: {ref}")
 
-# ========== 6. Required content checks ==========
-print("\n" + "=" * 60)
-print("6. Required exam content checks")
 
-content_checks = [
-    ("SYN clarified", r'不携带.*数据.*SYN|SYN.*不携带', exam_text),
-    ("Model notation", r'简化模型|课程常用简化', exam_text),
-    ("GBN timer wording", r'最早未确认.*计时器|为最早未确认', exam_text),
-    ("Total 100 declared", r'100分', exam_text),
-    ("Pass line 80", r'80分', exam_text),
-    ("Closed book rule", r'闭卷', exam_text),
-    ("Time estimate", r'预计\d+分钟|预计\d+min', exam_text),
-]
+# 6. Key answer value checks
+section("6. Key answer value checks")
 
-for name, pattern, text in content_checks:
-    if re.search(pattern, text, re.MULTILINE | re.DOTALL):
-        print(f"  PASS: {name}")
-    else:
-        warnings.append(f"Exam missing: {name}")
-        print(f"  WARN: {name} - not found")
+check("RTO = 65 + 4 * 25 = 165 ms" in answer_text or "RTO=165 ms" in answer_text,
+      "RTT/RTO answer must contain RTO=165 ms")
+check("RTTVARnew=25 ms" in answer_text, "RTTVAR answer must be 25 ms")
+check("SRTTnew=65 ms" in answer_text, "SRTT answer must be 65 ms")
 
-# Answer content checks
-print("\n7. Required answer content checks")
-answer_checks = [
-    ("Calculation steps", r'步骤', answer_text),
-    ("Scoring points", r'评分点|得\d分', answer_text),
-    ("Common mistakes", r'常见错误|易错', answer_text),
-    ("Verification", r'验证', answer_text),
-    ("Score verification", r'50\+50=100', answer_text),
-]
+frag_lengths = [1280, 1280, 1280, 1140]
+frag_offsets = [0, 160, 320, 480]
+check(sum(frag_lengths) == 4980, "IP fragmentation data lengths must sum to 4980")
+for offset in frag_offsets:
+    check(offset == int(offset) and offset >= 0, f"Fragment offset invalid: {offset}")
+for value in frag_lengths + frag_offsets:
+    check(str(value) in answer_text, f"Fragment answer missing value: {value}")
 
-for name, pattern, text in answer_checks:
-    if re.search(pattern, text, re.MULTILINE | re.DOTALL):
-        print(f"  PASS: {name}")
-    else:
-        warnings.append(f"Answer missing: {name}")
-        print(f"  WARN: {name} - not found")
 
-# ========== Summary ==========
-print("\n" + "=" * 60)
-print("VERIFICATION SUMMARY")
-print("=" * 60)
+# 7. VLSM required file
+section("7. VLSM status check")
+
+vlsm_file = REPO / "01_考前冲刺复习/网络层_VLSM完整例题.md"
+if "VLSM" in plan_text:
+    check(vlsm_file.exists(), "Plan contains VLSM but network VLSM example file is missing")
+    if vlsm_file.exists():
+        vlsm_text = vlsm_file.read_text(encoding="utf-8")
+        for token in ["192.168.10.0/24", "100", "50", "20", "10", "不重叠"]:
+            check(token in vlsm_text, f"VLSM example missing token: {token}")
+
+
+# Summary
+section("VERIFICATION SUMMARY")
 
 if errors:
-    print(f"\nFAIL: {len(errors)} error(s):")
-    for e in errors:
-        print(f"  - {e}")
+    print(f"FAIL: {len(errors)} error(s)")
+    for err in errors:
+        print(f"  - {err}")
 else:
-    print("\nPASS: All hard checks passed")
+    print("PASS: All hard checks passed")
 
 if warnings:
-    print(f"\nWARN: {len(warnings)} warning(s):")
-    for w in warnings:
-        print(f"  - {w}")
+    print(f"WARN: {len(warnings)} warning(s)")
+    for warn in warnings:
+        print(f"  - {warn}")
 
-print(f"\nErrors: {len(errors)}, Warnings: {len(warnings)}")
-
-if errors:
-    sys.exit(1)
-else:
-    sys.exit(0)
+print(f"Errors: {len(errors)}, Warnings: {len(warnings)}")
+sys.exit(1 if errors else 0)
