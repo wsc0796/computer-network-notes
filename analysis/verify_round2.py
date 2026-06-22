@@ -1,5 +1,5 @@
 """
-Round 2 final verification script.
+Round 3 90-point verification script.
 
 Checks:
 - exam score totals and module totals
@@ -8,6 +8,8 @@ Checks:
 - 6-hour plan blocks: total, no overlap, no gaps
 - exact referenced file paths
 - stage quiz files exist and prechecks do not point to formal exam answers
+- non-big-question 90 test and high-risk variant files exist
+- 90-point thresholds and red-line rules are present
 - key answer values for RTT/RTO, UDP parsing, route aggregation, and IP fragmentation
 - VLSM required file existence when VLSM is in the plan
 """
@@ -55,6 +57,10 @@ exam_rel = "02_刷题模拟卷/运输层网络层_6小时验收卷.md"
 answer_rel = "02_刷题模拟卷/运输层网络层_6小时验收卷_答案.md"
 stage_rel = "02_刷题模拟卷/运输层网络层_阶段抽查题.md"
 stage_answer_rel = "02_刷题模拟卷/运输层网络层_阶段抽查题_答案.md"
+nonbig_rel = "02_刷题模拟卷/运输层网络层_非大题90分速测.md"
+nonbig_answer_rel = "02_刷题模拟卷/运输层网络层_非大题90分速测_答案.md"
+risk_rel = "02_刷题模拟卷/运输层网络层_90分高风险变式卷.md"
+risk_answer_rel = "02_刷题模拟卷/运输层网络层_90分高风险变式卷_答案.md"
 plan_rel = "01_考前冲刺复习/运输层与网络层_6小时完整复习计划.md"
 checklist_rel = "01_考前冲刺复习/运输层与网络层_6小时执行清单.md"
 
@@ -62,6 +68,10 @@ exam_text = read_text(exam_rel)
 answer_text = read_text(answer_rel)
 stage_text = read_text(stage_rel)
 stage_answer_text = read_text(stage_answer_rel)
+nonbig_text = read_text(nonbig_rel)
+nonbig_answer_text = read_text(nonbig_answer_rel)
+risk_text = read_text(risk_rel)
+risk_answer_text = read_text(risk_answer_rel)
 plan_text = read_text(plan_rel)
 checklist_text = read_text(checklist_rel)
 
@@ -120,9 +130,9 @@ print(f"  Declared answer time: {answer_time}min")
 print(f"  Declared correction time: {correction_time}min")
 print(f"  Sum of question estimates: {question_time_total}min")
 
-check(answer_time == 60, f"Answer time={answer_time}, expected=60")
-check(correction_time >= 10, f"Correction time={correction_time}, expected >=10")
-check(55 <= question_time_total <= 60, f"Question estimate total={question_time_total}, expected 55-60")
+check(answer_time == 55, f"Answer time={answer_time}, expected=55")
+check(correction_time == 15, f"Correction time={correction_time}, expected=15")
+check(question_time_total == 50, f"Question estimate total={question_time_total}, expected 50")
 
 
 # 3. Answer correspondence
@@ -177,9 +187,9 @@ summary_expect = {
     "运输层复习": 125,
     "网络层复习": 140,
     "休息": 10,
-    "自检缓冲": 10,
-    "闭卷验收": 60,
-    "订正复盘": 15,
+    "正式验收": 55,
+    "对答案和错因归类": 15,
+    "高风险变式卷": 15,
 }
 for label, expected in summary_expect.items():
     m = re.search(rf"\|\s*{re.escape(label)}\s*\|\s*(\d+)\s*\|", plan_text)
@@ -201,6 +211,10 @@ texts_for_paths = [
     ("answer", answer_text),
     ("stage", stage_text),
     ("stage_answer", stage_answer_text),
+    ("nonbig", nonbig_text),
+    ("nonbig_answer", nonbig_answer_text),
+    ("risk", risk_text),
+    ("risk_answer", risk_answer_text),
 ]
 referenced_paths: set[str] = set()
 
@@ -239,9 +253,66 @@ check("正式验收前不打开" in checklist_text or "正式验收前不得" in
 for token in ["数据报", "虚电路", "转发", "路由", "直接", "间接", "IP", "MAC", "DHCP", "特殊IP"]:
     check(token in stage_text, f"Stage quiz missing required non-big-question token: {token}")
 
+check("5 道小题必须全部正确" in plan_text, "Plan must require stage quiz 5/5")
+check("必须 5/5 正确" in checklist_text, "Checklist must require stage quiz 5/5")
 
-# 7. Key answer value checks
-section("7. Key answer value checks")
+
+# 7. 90-point supplemental checks
+section("7. 90-point supplemental checks")
+
+for label, text in [
+    ("nonbig", nonbig_text),
+    ("nonbig_answer", nonbig_answer_text),
+    ("risk", risk_text),
+    ("risk_answer", risk_answer_text),
+]:
+    check(bool(text.strip()), f"{label} file must not be empty")
+
+nonbig_questions = re.findall(r"^###\s+(\d+)\.", nonbig_text, re.MULTILINE)
+risk_questions = re.findall(r"^##\s+(\d+)\.", risk_text, re.MULTILINE)
+print(f"  Non-big-question test count: {len(nonbig_questions)}")
+print(f"  High-risk variant count: {len(risk_questions)}")
+check(len(nonbig_questions) == 20, f"Non-big-question test must contain 20 questions, got {len(nonbig_questions)}")
+check(len(risk_questions) == 6, f"High-risk variant must contain 6 questions, got {len(risk_questions)}")
+
+for token in [
+    "TCP/UDP", "端口", "RDT", "GBN", "SR", "Karn", "SACK", "零窗口",
+    "握手", "挥手", "数据报", "虚电路", "转发", "路由", "直接", "间接",
+    "IP", "MAC", "特殊IP", "DHCP", "ICMP", "NAT", "RIP", "OSPF",
+    "BGP", "IPv6", "IPv4首部",
+]:
+    check(token in nonbig_text or token in nonbig_answer_text, f"Non-big 90 test missing token: {token}")
+
+for token in ["SYN", "FIN", "拥塞", "CIDR", "最长前缀", "同一下一跳", "IP分片"]:
+    check(token in risk_text or token in risk_answer_text, f"High-risk variant missing token: {token}")
+
+for token in [
+    "总分 `>=90`",
+    "运输层 `>=45/50`",
+    "网络层 `>=45/50`",
+    "20题至少18题正确",
+    "6题至少5题正确",
+    "完成全部训练并同时通过正式验收、非大题速测和陌生变式",
+    "整张试卷能否达到90分，还取决于网络概述、物理层和数据链路层",
+]:
+    check(token in plan_text, f"Plan missing 90-point statement: {token}")
+
+for redline in [
+    "SYN/FIN序号计算错误",
+    "`rwnd` 与 `cwnd` 混淆",
+    "广播地址或CIDR边界错误",
+    "最长前缀规则错误",
+    "RIP距离未加1",
+    "同一下一跳变差时未更新",
+    "分片偏移未除以8",
+    "MF标志错误",
+    "UDP长度未减8字节求数据长度",
+]:
+    check(redline in plan_text, f"Plan missing red-line rule: {redline}")
+
+
+# 8. Key answer value checks
+section("8. Key answer value checks")
 
 check("RTO = 75 + 4*23.5 = 169 ms" in answer_text or "RTO=169 ms" in answer_text,
       "RTT/RTO answer must contain RTO=169 ms")
@@ -262,9 +333,11 @@ for token in ["8080", "53", "44 字节", "36 字节"]:
 for token in ["192.168.40.0/22", "00101000", "00101011"]:
     check(token in answer_text, f"Route aggregation answer missing token: {token}")
 
+for token in ["1302", "ssthresh = 12 / 2 = 6 MSS", "192.168.31.255", "下一跳为 `D`", "N5 | 8 | R2", "第5片 | 97 | 0 | 488"]:
+    check(token in risk_answer_text, f"High-risk answer missing token: {token}")
 
-# 8. VLSM required file
-section("8. VLSM status check")
+# 9. VLSM required file
+section("9. VLSM status check")
 
 vlsm_file = REPO / "01_考前冲刺复习/网络层_VLSM完整例题.md"
 if "VLSM" in plan_text:
