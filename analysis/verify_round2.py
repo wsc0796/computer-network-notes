@@ -7,7 +7,8 @@ Checks:
 - question number uniqueness and exam-answer correspondence
 - 6-hour plan blocks: total, no overlap, no gaps
 - exact referenced file paths
-- key answer values for RTT/RTO and IP fragmentation
+- stage quiz files exist and prechecks do not point to formal exam answers
+- key answer values for RTT/RTO, UDP parsing, route aggregation, and IP fragmentation
 - VLSM required file existence when VLSM is in the plan
 """
 
@@ -52,11 +53,17 @@ def section(title: str) -> None:
 
 exam_rel = "02_刷题模拟卷/运输层网络层_6小时验收卷.md"
 answer_rel = "02_刷题模拟卷/运输层网络层_6小时验收卷_答案.md"
+stage_rel = "02_刷题模拟卷/运输层网络层_阶段抽查题.md"
+stage_answer_rel = "02_刷题模拟卷/运输层网络层_阶段抽查题_答案.md"
 plan_rel = "01_考前冲刺复习/运输层与网络层_6小时完整复习计划.md"
+checklist_rel = "01_考前冲刺复习/运输层与网络层_6小时执行清单.md"
 
 exam_text = read_text(exam_rel)
 answer_text = read_text(answer_rel)
+stage_text = read_text(stage_rel)
+stage_answer_text = read_text(stage_answer_rel)
 plan_text = read_text(plan_rel)
+checklist_text = read_text(checklist_rel)
 
 
 # 1. Score verification
@@ -80,15 +87,15 @@ for q in questions:
     print(f"  Q{q['num']}: {q['score']}分, {q['time']}min, {q['title']}")
 
 question_numbers = [q["num"] for q in questions]
-check(len(question_numbers) == 13, f"Expected 13 questions, got {len(question_numbers)}")
+check(len(question_numbers) == 15, f"Expected 15 questions, got {len(question_numbers)}")
 check(
     len(question_numbers) == len(set(question_numbers)),
     f"Duplicate exam question numbers: {question_numbers}",
 )
-check(question_numbers == list(range(1, 14)), f"Question numbers must be 1-13, got {question_numbers}")
+check(question_numbers == list(range(1, 16)), f"Question numbers must be 1-15, got {question_numbers}")
 
-transport_total = sum(q["score"] for q in questions if 1 <= q["num"] <= 7)
-network_total = sum(q["score"] for q in questions if 8 <= q["num"] <= 13)
+transport_total = sum(q["score"] for q in questions if 1 <= q["num"] <= 8)
+network_total = sum(q["score"] for q in questions if 9 <= q["num"] <= 15)
 score_total = transport_total + network_total
 
 print(f"  Transport score: {transport_total}")
@@ -125,7 +132,7 @@ answer_numbers = [int(m.group(1)) for m in re.finditer(r"^###\s+(\d+)\.\s+", ans
 print(f"  Exam questions: {question_numbers}")
 print(f"  Answer questions: {answer_numbers}")
 
-check(len(answer_numbers) == 13, f"Expected 13 answer sections, got {len(answer_numbers)}")
+check(len(answer_numbers) == 15, f"Expected 15 answer sections, got {len(answer_numbers)}")
 check(
     len(answer_numbers) == len(set(answer_numbers)),
     f"Duplicate answer question numbers: {answer_numbers}",
@@ -187,7 +194,14 @@ for label, expected in summary_expect.items():
 section("5. Exact referenced path verification")
 
 allowed_exts = (".md", ".jpg", ".jpeg", ".png", ".pdf")
-texts_for_paths = [("plan", plan_text), ("exam", exam_text), ("answer", answer_text)]
+texts_for_paths = [
+    ("plan", plan_text),
+    ("checklist", checklist_text),
+    ("exam", exam_text),
+    ("answer", answer_text),
+    ("stage", stage_text),
+    ("stage_answer", stage_answer_text),
+]
 referenced_paths: set[str] = set()
 
 for source, text in texts_for_paths:
@@ -200,25 +214,57 @@ for ref in sorted(referenced_paths):
     check((REPO / ref).exists(), f"Referenced path missing: {ref}")
 
 
-# 6. Key answer value checks
-section("6. Key answer value checks")
+# 6. Stage quiz and anti-leak checks
+section("6. Stage quiz and anti-leak checks")
 
-check("RTO = 65 + 4 * 25 = 165 ms" in answer_text or "RTO=165 ms" in answer_text,
-      "RTT/RTO answer must contain RTO=165 ms")
-check("RTTVARnew=25 ms" in answer_text, "RTTVAR answer must be 25 ms")
-check("SRTTnew=65 ms" in answer_text, "SRTT answer must be 65 ms")
+for label, text in [("stage", stage_text), ("stage_answer", stage_answer_text)]:
+    check(bool(text.strip()), f"{label} file must not be empty")
 
-frag_lengths = [1280, 1280, 1280, 1140]
-frag_offsets = [0, 160, 320, 480]
-check(sum(frag_lengths) == 4980, "IP fragmentation data lengths must sum to 4980")
+check("阶段抽查题.md" in plan_text, "Plan prechecks must reference stage quiz")
+check("阶段抽查题_答案.md" in plan_text, "Plan prechecks must reference stage quiz answer for post-check")
+transport_precheck = re.search(r"01:52[—-]02:05.*?(?=^##\s+02:05)", plan_text, re.S | re.M)
+network_precheck = re.search(r"04:25[—-]04:35.*?(?=^##\s+04:35)", plan_text, re.S | re.M)
+for name, match in [("transport precheck", transport_precheck), ("network precheck", network_precheck)]:
+    check(bool(match), f"Missing {name} block")
+    if match:
+        block = match.group(0)
+        check("6小时验收卷_答案.md" not in block, f"{name} must not reference formal answer")
+        check("6小时验收卷.md" not in block, f"{name} must not reference formal exam")
+
+check("正式验收前不得打开" in plan_text or "正式验收前不得查看" in plan_text,
+      "Plan must explicitly forbid opening formal answer before final exam")
+check("正式验收前不打开" in checklist_text or "正式验收前不得" in checklist_text,
+      "Checklist must explicitly forbid opening formal answer before final exam")
+
+for token in ["数据报", "虚电路", "转发", "路由", "直接", "间接", "IP", "MAC", "DHCP", "特殊IP"]:
+    check(token in stage_text, f"Stage quiz missing required non-big-question token: {token}")
+
+
+# 7. Key answer value checks
+section("7. Key answer value checks")
+
+check("RTO = 75 + 4*23.5 = 169 ms" in answer_text or "RTO=169 ms" in answer_text,
+      "RTT/RTO answer must contain RTO=169 ms")
+check("23.5 ms" in answer_text, "RTTVAR answer must be 23.5 ms")
+check("75 ms" in answer_text, "SRTT answer must be 75 ms")
+
+frag_lengths = [1480, 1480, 1120]
+frag_offsets = [0, 185, 370]
+check(sum(frag_lengths) == 4080, "IP fragmentation data lengths must sum to 4080")
 for offset in frag_offsets:
     check(offset == int(offset) and offset >= 0, f"Fragment offset invalid: {offset}")
 for value in frag_lengths + frag_offsets:
     check(str(value) in answer_text, f"Fragment answer missing value: {value}")
 
+for token in ["8080", "53", "44 字节", "36 字节"]:
+    check(token in answer_text, f"UDP parsing answer missing token: {token}")
 
-# 7. VLSM required file
-section("7. VLSM status check")
+for token in ["192.168.40.0/22", "00101000", "00101011"]:
+    check(token in answer_text, f"Route aggregation answer missing token: {token}")
+
+
+# 8. VLSM required file
+section("8. VLSM status check")
 
 vlsm_file = REPO / "01_考前冲刺复习/网络层_VLSM完整例题.md"
 if "VLSM" in plan_text:
