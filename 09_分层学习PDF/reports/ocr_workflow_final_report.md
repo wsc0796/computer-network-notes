@@ -30,13 +30,19 @@
 .\scripts\run_ocr_y7000p.ps1 -PdfName "4-传输层.pdf"
 ```
 
-3. 如果需要指定虚拟环境：
+3. 如果当前在 `09_分层学习PDF` 目录，可以执行：
+
+```powershell
+.\run_ocr_y7000p.ps1 -PdfName "4-传输层.pdf"
+```
+
+4. 如果需要指定虚拟环境：
 
 ```powershell
 .\scripts\run_ocr_y7000p.ps1 -PdfName "4-传输层.pdf" -PythonExe "D:\path\to\venv\Scripts\python.exe"
 ```
 
-4. 执行结束后检查：
+5. 执行结束后检查：
 
 ```text
 09_分层学习PDF/extracted/4-传输层_ocr/
