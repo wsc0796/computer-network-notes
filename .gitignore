@@ -6,3 +6,8 @@
 05_教材PDF/
 06_新增资料/*.pdf
 06_新增资料/MinerU_期末加油站讲义/
+
+# Local audit runs and scratch output; source notes and audit scripts remain tracked.
+analysis/codex-audit/
+analysis/__pycache__/
+tmp/
